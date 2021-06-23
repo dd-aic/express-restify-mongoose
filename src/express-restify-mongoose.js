@@ -109,12 +109,13 @@ const restify = function (app, model, opts) {
 
   app.use((req, res, next) => {
     const getModel = options.modelFactory && options.modelFactory.getModel
-
-    req.erm = {
-      model: typeof getModel === 'function' ? getModel(req) : model,
-    }
-
-    next()
+    const modelPromise = Promise.resolve(typeof getModel === 'function' ? getModel(req) : model)
+    modelPromise.then( resolvedModel => {
+      req.erm = {
+        model: resolvedModel,
+      }
+      next()
+    })
   })
 
   const accessMiddleware = options.access ? access(options) : []
