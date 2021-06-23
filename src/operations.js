@@ -224,7 +224,12 @@ module.exports = function (model, options, excludedMap) {
       return dst
     }
 
-    const cleanBody = moredots(depopulate(req.body))
+    const cleanBody = depopulate(req.body)
+
+    // TODO: We should probably reverse this to something like "shallowUpdate" to keep backwards compatibility
+    if (options.updateDeep) { 
+        cleanBody = moredots(cleanBody)
+    }
 
     if (options.findOneAndUpdate) {
       options.contextFilter(contextModel, req, (filteredContext) => {
