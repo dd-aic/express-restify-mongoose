@@ -110,11 +110,8 @@ const restify = function (app, model, opts) {
   const modelMiddleware = async function (req, res, next) {
     const getModel = options.modelFactory && options.modelFactory.getModel
 
-    const modelPromise = Promise.resolve(typeof getModel === 'function' ? getModel(req) : model)
-    const resolvedModel = await modelPromise
-
     req.erm = {
-      model: resolvedModel,
+      model: typeof getModel === 'function' ? await getModel(req) : model,
     }
 
     next()
