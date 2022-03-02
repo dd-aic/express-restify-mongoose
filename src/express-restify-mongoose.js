@@ -107,32 +107,34 @@ const restify = function (app, model, opts) {
     app.delete = app.del
   }
 
-  app.use((req, res, next) => {
+  const modelMiddleware = async function (req, res, next) {
     const getModel = options.modelFactory && options.modelFactory.getModel
+
     const modelPromise = Promise.resolve(typeof getModel === 'function' ? getModel(req) : model)
-    modelPromise.then( resolvedModel => {
-      req.erm = {
-        model: resolvedModel,
-      }
-      next()
-    })
-  })
+    const resolvedModel = await modelPromise
+
+    req.erm = {
+      model: resolvedModel,
+    }
+
+    next()
+  }
 
   const accessMiddleware = options.access ? access(options) : []
 
-  app.get(uriItems, prepareQuery, options.preMiddleware, options.preRead, accessMiddleware, ops.getItems, prepareOutput)
-  app.get(uriCount, prepareQuery, options.preMiddleware, options.preRead, accessMiddleware, ops.getCount, prepareOutput)
-  app.get(uriItem, prepareQuery, options.preMiddleware, options.preRead, accessMiddleware, ops.getItem, prepareOutput)
-  app.get(uriShallow, prepareQuery, options.preMiddleware, options.preRead, accessMiddleware, ops.getShallow, prepareOutput)
+  app.get(uriItems, modelMiddleware, prepareQuery, options.preMiddleware, options.preRead, accessMiddleware, ops.getItems, prepareOutput)
+  app.get(uriCount, modelMiddleware, prepareQuery, options.preMiddleware, options.preRead, accessMiddleware, ops.getCount, prepareOutput)
+  app.get(uriItem, modelMiddleware, prepareQuery, options.preMiddleware, options.preRead, accessMiddleware, ops.getItem, prepareOutput)
+  app.get(uriShallow, modelMiddleware, prepareQuery, options.preMiddleware, options.preRead, accessMiddleware, ops.getShallow, prepareOutput)
 
-  app.post(uriItems, prepareQuery, ensureContentType, options.preMiddleware, options.preCreate, accessMiddleware, ops.createObject, prepareOutput)
-  app.post(uriItem, util.deprecate(prepareQuery, 'express-restify-mongoose: in a future major version, the POST method to update resources will be removed. Use PATCH instead.'), ensureContentType, options.preMiddleware, options.findOneAndUpdate ? [] : filterAndFindById, options.preUpdate, accessMiddleware, ops.modifyObject, prepareOutput)
+  app.post(uriItems, modelMiddleware, prepareQuery, ensureContentType, options.preMiddleware, options.preCreate, accessMiddleware, ops.createObject, prepareOutput)
+  app.post(uriItem, modelMiddleware, util.deprecate(prepareQuery, 'express-restify-mongoose: in a future major version, the POST method to update resources will be removed. Use PATCH instead.'), ensureContentType, options.preMiddleware, options.findOneAndUpdate ? [] : filterAndFindById, options.preUpdate, accessMiddleware, ops.modifyObject, prepareOutput)
 
-  app.put(uriItem, util.deprecate(prepareQuery, 'express-restify-mongoose: in a future major version, the PUT method will replace rather than update a resource. Use PATCH instead.'), ensureContentType, options.preMiddleware, options.findOneAndUpdate ? [] : filterAndFindById, options.preUpdate, accessMiddleware, ops.modifyObject, prepareOutput)
-  app.patch(uriItem, prepareQuery, ensureContentType, options.preMiddleware, options.findOneAndUpdate ? [] : filterAndFindById, options.preUpdate, accessMiddleware, ops.modifyObject, prepareOutput)
+  app.put(uriItem, modelMiddleware, util.deprecate(prepareQuery, 'express-restify-mongoose: in a future major version, the PUT method will replace rather than update a resource. Use PATCH instead.'), ensureContentType, options.preMiddleware, options.findOneAndUpdate ? [] : filterAndFindById, options.preUpdate, accessMiddleware, ops.modifyObject, prepareOutput)
+  app.patch(uriItem, modelMiddleware, prepareQuery, ensureContentType, options.preMiddleware, options.findOneAndUpdate ? [] : filterAndFindById, options.preUpdate, accessMiddleware, ops.modifyObject, prepareOutput)
 
-  app.delete(uriItems, prepareQuery, options.preMiddleware, options.preDelete, ops.deleteItems, prepareOutput)
-  app.delete(uriItem, prepareQuery, options.preMiddleware, options.findOneAndRemove ? [] : filterAndFindById, options.preDelete, ops.deleteItem, prepareOutput)
+  app.delete(uriItems, modelMiddleware, prepareQuery, options.preMiddleware, options.preDelete, ops.deleteItems, prepareOutput)
+  app.delete(uriItem, modelMiddleware, prepareQuery, options.preMiddleware, options.findOneAndRemove ? [] : filterAndFindById, options.preDelete, ops.deleteItem, prepareOutput)
 
   return uriItems
 }
